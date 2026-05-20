@@ -280,6 +280,7 @@
 
       <section id="dashboard" aria-label="Business charts">
         <h2>Analytics Dashboard</h2>
+        <p id="protocolWarning" class="chart-error" hidden></p>
         <div id="chartGrid" class="chart-grid"></div>
       </section>
     </main>
@@ -441,6 +442,16 @@
       }
 
 
+
+      function showProtocolWarning() {
+        if (window.location.protocol === 'file:') {
+          const warning = document.getElementById('protocolWarning');
+          warning.hidden = false;
+          warning.textContent =
+            'You are viewing this page with file://. CSV fetch requests may fail; run `python -m http.server 8000` from the repo root and open http://localhost:8000/index.html instead.';
+        }
+      }
+
       async function loadCsvRows(csvPath) {
         const response = await fetch(csvPath);
         if (!response.ok) {
@@ -587,6 +598,7 @@
       });
 
       initializeDashboard();
+      showProtocolWarning();
       applyTheme(getStoredTheme());
       renderDashboard().catch((error) => {
         console.error('Failed to render dashboard:', error);

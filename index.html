@@ -350,7 +350,7 @@
         ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true },
         orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', movingAverageWindow: 3 },
         geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency', sortBy: 'total_revenue', sortOrder: 'desc' },
-        geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
+        geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number', sortBy: 'number_of_customers', sortOrder: 'desc', integerYAxis: true, tooltipValueFormat: 'compact' },
         paymentMethodRevenue: { id: 'paymentMethodRevenue', title: 'Revenue by Payment Method', csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv', chartType: 'line', xKey: 'order_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 36, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
         bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
         abandonedCartRecovery: { id: 'abandonedCartRecovery', title: 'Abandoned Cart Recovery', csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv', chartType: 'bar', xKey: 'traffic_source', yKey: 'cart_recovery_rate', horizontalBarLike: false, maxLabels: 20, heightClass: 'chart-height-md', axisTickFormat: 'percent' },
@@ -459,6 +459,13 @@
         return Number(value).toLocaleString();
       }
 
+      function formatTooltipValue(value, formatType, axisTickFormat) {
+        if (formatType === 'compact') {
+          return Number(value).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+        }
+        return formatTickValue(value, axisTickFormat);
+      }
+
       function computeMovingAverage(values, windowSize) {
         if (!Number.isInteger(windowSize) || windowSize <= 1) {
           return [];
@@ -536,7 +543,7 @@
                     label(context) {
                       const label = context.dataset.label ? `${context.dataset.label}: ` : '';
                       const value = config.horizontalBarLike ? context.parsed.x : context.parsed.y;
-                      return `${label}${formatTickValue(value, config.axisTickFormat)}`;
+                      return `${label}${formatTooltipValue(value, config.tooltipValueFormat, config.axisTickFormat)}`;
                     }
                   }
                 }

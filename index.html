@@ -418,6 +418,18 @@
         }
       ];
 
+      const TAB_VIEWS = {
+        revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
+        ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number' },
+        orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
+        geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency' },
+        geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
+        paymentMethodRevenue: { id: 'paymentMethodRevenue', title: 'Revenue by Payment Method', csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv', chartType: 'line', xKey: 'order_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 36, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
+        bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
+        abandonedCartRecovery: { id: 'abandonedCartRecovery', title: 'Abandoned Cart Recovery', csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv', chartType: 'bar', xKey: 'traffic_source', yKey: 'cart_recovery_rate', horizontalBarLike: false, maxLabels: 20, heightClass: 'chart-height-md', axisTickFormat: 'percent' },
+        productQualityRevenue: { id: 'productQualityRevenue', title: 'Product Quality vs Revenue', csvPath: 'analysis/exports/CSVs/01_09_product_quality_revenue.csv', chartType: 'bar', xKey: 'product_name', yKey: 'item_revenue', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'currency' }
+      };
+
       const STORAGE_KEY = 'themePreference';
       const root = document.documentElement;
       const modal = document.getElementById('aboutModal');
@@ -483,7 +495,7 @@
 
       function createChartCard(container, config) {
         const card = document.createElement('article');
-        card.className = 'chart-card';
+        card.className = `chart-card ${config.heightClass || ''}`.trim();
 
         const title = document.createElement('h3');
         title.className = 'chart-title';
@@ -514,15 +526,22 @@
         container.append(card);
       }
 
+      function formatTickValue(value, axisTickFormat) {
+        if (axisTickFormat === 'currency') return `$${Number(value).toLocaleString()}`;
+        if (axisTickFormat === 'percent') return `${(Number(value) * 100).toFixed(0)}%`;
+        return Number(value).toLocaleString();
+      }
+
       async function renderSingleChart(container, config) {
         try {
           const rows = await loadCsvRows(config.csvPath);
-          const labels = rows.map((row) => row[config.xKey]);
-          const values = rows.map((row) => row[config.yKey]);
+          const limitedRows = Number.isFinite(config.maxLabels) ? rows.slice(0, config.maxLabels) : rows;
+          const labels = limitedRows.map((row) => row[config.xKey]);
+          const values = limitedRows.map((row) => row[config.yKey]);
           const canvas = createChartCard(container, config);
 
           const chartInstance = new Chart(canvas.getContext('2d'), {
-            type: config.type,
+            type: config.chartType,
             data: {
               labels,
               datasets: [
@@ -533,7 +552,7 @@
                   backgroundColor: 'rgba(23, 105, 255, 0.28)',
                   borderWidth: 2,
                   tension: 0.25,
-                  fill: config.type === 'line'
+                  fill: config.chartType === 'line'
                 }
               ]
             },
@@ -545,9 +564,15 @@
                   display: false
                 }
               },
+              indexAxis: config.horizontalBarLike ? 'y' : 'x',
               scales: {
                 y: {
-                  beginAtZero: true
+                  beginAtZero: true,
+                  ticks: {
+                    callback(value) {
+                      return formatTickValue(value, config.axisTickFormat);
+                    }
+                  }
                 }
               }
             }
@@ -598,9 +623,9 @@
             return;
           }
 
-          const config = CHART_CONFIGS.find((entry) => entry.id === tabId);
+          const config = TAB_VIEWS[tabId];
           if (!config) {
-            renderErrorCard(panel, 'Unknown tab', `No chart configuration found for "${tabId}".`);
+            renderErrorCard(panel, 'Unknown tab', `No tab view configuration found for "${tabId}".`);
             return;
           }
 

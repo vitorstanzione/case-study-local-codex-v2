@@ -349,7 +349,7 @@
         revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', fillArea: true, lineTension: 0.35, reduceTickLabels: true },
         ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true },
         orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', movingAverageWindow: 3 },
-        geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency' },
+        geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency', sortBy: 'total_revenue', sortOrder: 'desc' },
         geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
         paymentMethodRevenue: { id: 'paymentMethodRevenue', title: 'Revenue by Payment Method', csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv', chartType: 'line', xKey: 'order_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 36, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
         bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
@@ -477,7 +477,15 @@
       async function renderSingleChart(container, config) {
         try {
           const rows = await loadCsvRows(config.csvPath);
-          const limitedRows = Number.isFinite(config.maxLabels) ? rows.slice(0, config.maxLabels) : rows;
+          const sortedRows = config.sortBy
+            ? [...rows].sort((a, b) => {
+                const left = Number(a[config.sortBy]);
+                const right = Number(b[config.sortBy]);
+                const direction = config.sortOrder === 'asc' ? 1 : -1;
+                return (left - right) * direction;
+              })
+            : rows;
+          const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
           const labels = limitedRows.map((row) => row[config.xKey]);
           const values = limitedRows.map((row) => row[config.yKey]);
           const canvas = createChartCard(container, config);
@@ -527,7 +535,8 @@
                   callbacks: {
                     label(context) {
                       const label = context.dataset.label ? `${context.dataset.label}: ` : '';
-                      return `${label}${formatTickValue(context.parsed.y, config.axisTickFormat)}`;
+                      const value = config.horizontalBarLike ? context.parsed.x : context.parsed.y;
+                      return `${label}${formatTickValue(value, config.axisTickFormat)}`;
                     }
                   }
                 }

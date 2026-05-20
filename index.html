@@ -424,6 +424,9 @@
       const aboutButton = document.getElementById('aboutButton');
       const closeModalButton = document.getElementById('closeModal');
       const themeButtons = Array.from(document.querySelectorAll('.theme-btn[data-theme-option]'));
+      let activeChart = null;
+      let activeTabId = 'home';
+      let tabRenderVersion = 0;
 
       function getSystemTheme() {
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -561,9 +564,19 @@
 
       function initializeTabs() {
         const tabButtons = Array.from(document.querySelectorAll('.tab-button[role="tab"]'));
-        let currentChartInstance = null;
 
         async function activateTab(tabId) {
+          const renderVersion = ++tabRenderVersion;
+          activeTabId = tabId;
+
+          if (activeChart) {
+            activeChart.destroy();
+            activeChart = null;
+          }
+
+          const panel = document.getElementById('tabContent');
+          panel.textContent = '';
+
           const activeButton = tabButtons.find((button) => button.dataset.tab === tabId);
           if (!activeButton) {
             return;
@@ -575,14 +588,7 @@
             button.tabIndex = isActive ? 0 : -1;
           });
 
-          const panel = document.getElementById('tabContent');
           panel.setAttribute('aria-labelledby', activeButton.id);
-          panel.textContent = '';
-
-          if (currentChartInstance) {
-            currentChartInstance.destroy();
-            currentChartInstance = null;
-          }
 
           if (tabId === 'home') {
             const summary = document.createElement('p');
@@ -598,7 +604,15 @@
             return;
           }
 
-          currentChartInstance = await renderSingleChart(panel, config);
+          const chartInstance = await renderSingleChart(panel, config);
+          if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
+            if (chartInstance) {
+              chartInstance.destroy();
+            }
+            panel.textContent = '';
+            return;
+          }
+          activeChart = chartInstance;
         }
 
         tabButtons.forEach((button) => {

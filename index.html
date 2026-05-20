@@ -354,7 +354,7 @@
         geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number', sortBy: 'number_of_customers', sortOrder: 'desc', integerYAxis: true, tooltipValueFormat: 'compact' },
         paymentMethodRevenue: { id: 'paymentMethodRevenue', title: 'Revenue by Payment Method', csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv', chartType: 'bar', xKey: 'order_month', yKey: 'revenue', seriesKey: 'payment_method', horizontalBarLike: false, maxLabels: 36, heightClass: 'chart-height-md', axisTickFormat: 'currency', forceLegend: true },
         bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 15, heightClass: 'chart-height-lg', axisTickFormat: 'number', integerYAxis: true, tooltipValueFormat: 'integer', sortBy: 'total_units_sold', sortOrder: 'desc', showDataLabels: true },
-        abandonedCartRecovery: { id: 'abandonedCartRecovery', title: 'Abandoned Cart Recovery', csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv', chartType: 'bar', xKey: 'traffic_source', yKey: 'cart_recovery_rate', horizontalBarLike: false, maxLabels: 20, heightClass: 'chart-height-md', axisTickFormat: 'percent' },
+        abandonedCartRecovery: { id: 'abandonedCartRecovery', title: 'Abandoned Cart Recovery', csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv', chartType: 'bar', xKey: 'traffic_source', yKey: 'cart_recovery_rate', horizontalBarLike: false, maxLabels: 20, heightClass: 'chart-height-md', axisTickFormat: 'percent', percentScale: 'auto' },
         productQualityRevenue: { id: 'productQualityRevenue', title: 'Product Quality vs Revenue', csvPath: 'analysis/exports/CSVs/01_09_product_quality_revenue.csv', chartType: 'bar', xKey: 'product_name', yKey: 'item_revenue', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'currency' }
       };
 
@@ -458,20 +458,37 @@
         container.append(card);
       }
 
-      function formatTickValue(value, axisTickFormat) {
+      function resolvePercentScale(config, rows) {
+        if (config.axisTickFormat !== 'percent') return null;
+        if (config.percentScale === 'fraction' || config.percentScale === 'whole') return config.percentScale;
+
+        const numericValues = rows
+          .map((row) => Number(row[config.yKey]))
+          .filter((value) => Number.isFinite(value));
+
+        if (numericValues.length === 0) return 'fraction';
+        const maxValue = Math.max(...numericValues);
+        return maxValue > 1 ? 'whole' : 'fraction';
+      }
+
+      function formatTickValue(value, axisTickFormat, percentScale = 'fraction') {
         if (axisTickFormat === 'currency') return Number(value).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-        if (axisTickFormat === 'percent') return `${(Number(value) * 100).toFixed(0)}%`;
+        if (axisTickFormat === 'percent') {
+          const numericValue = Number(value);
+          const percentValue = percentScale === 'whole' ? numericValue : numericValue * 100;
+          return `${percentValue.toFixed(0)}%`;
+        }
         return Number(value).toLocaleString();
       }
 
-      function formatTooltipValue(value, formatType, axisTickFormat) {
+      function formatTooltipValue(value, formatType, axisTickFormat, percentScale = 'fraction') {
         if (formatType === 'compact') {
           return Number(value).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
         }
         if (formatType === 'integer') {
           return Math.round(Number(value)).toLocaleString('en-US');
         }
-        return formatTickValue(value, axisTickFormat);
+        return formatTickValue(value, axisTickFormat, percentScale);
       }
 
       function computeMovingAverage(values, windowSize) {
@@ -492,6 +509,7 @@
       async function renderSingleChart(container, config) {
         try {
           const rows = await loadCsvRows(config.csvPath);
+          const percentScale = resolvePercentScale(config, rows);
           const sortedRows = config.sortBy
             ? [...rows].sort((a, b) => {
                 const left = Number(a[config.sortBy]);
@@ -586,7 +604,7 @@
                     label(context) {
                       const label = context.dataset.label ? `${context.dataset.label}: ` : '';
                       const value = config.horizontalBarLike ? context.parsed.x : context.parsed.y;
-                      return `${label}${formatTooltipValue(value, config.tooltipValueFormat, config.axisTickFormat)}`;
+                      return `${label}${formatTooltipValue(value, config.tooltipValueFormat, config.axisTickFormat, percentScale || 'fraction')}`;
                     }
                   }
                 }
@@ -603,13 +621,14 @@
                 },
                 y: {
                   beginAtZero: true,
+                  max: config.axisTickFormat === 'percent' ? (percentScale === 'whole' ? 100 : 1) : undefined,
                   ticks: {
                     precision: config.integerYAxis ? 0 : undefined,
                     callback(value) {
                       if (config.integerYAxis && !Number.isInteger(Number(value))) {
                         return '';
                       }
-                      return formatTickValue(value, config.axisTickFormat);
+                      return formatTickValue(value, config.axisTickFormat, percentScale || 'fraction');
                     }
                   }
                 }

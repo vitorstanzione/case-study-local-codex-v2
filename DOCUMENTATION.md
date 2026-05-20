@@ -1,239 +1,122 @@
-# Chart Implementation Plan for `index.html`
+# Dashboard Setup & Chart Extension Guide
 
-## Quick run instructions
+This document explains only what you need to:
+1. run the dashboard locally, and
+2. add or update charts safely.
 
-From the repository root, start a local web server:
+It intentionally excludes one-off implementation history.
+
+---
+
+## 1) Local setup (required)
+
+From repo root:
 
 ```bash
 python -m http.server 8000
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8000/index.html
 ```
 
----
-
-Below is the **best low-friction approach** to render charts directly in your current `index.html` using the CSV files in `analysis/exports/CSVs/`.
-
-## Why this approach
-
-- **No build step required**: everything runs in a single HTML file.
-- **Simple CSV loading**: use `PapaParse` to fetch + parse CSV files.
-- **Reliable charting**: use `Chart.js` for line/bar charts with good defaults.
-- **Scalable**: you can add new charts by only appending to one config array.
+### Why this is required
+The page loads CSV files via `fetch(...)`. Opening `index.html` with `file://` will fail in most browsers because local file requests are blocked.
 
 ---
 
-## Recommended architecture (inside `index.html`)
+## 2) Data and chart file locations
 
-1. Keep your theme UI as-is.
-2. Add a `dashboard` section with chart containers.
-3. Add CDN scripts for:
-   - `papaparse`
-   - `chart.js`
-4. Add a `CHART_CONFIGS` array that maps:
-   - CSV file path
-   - chart title
-   - chart type
-   - x/y columns
-5. Loop through configs, fetch each CSV, parse rows, render chart.
-6. Show a readable inline error if one CSV fails.
+- **Main page**: `index.html`
+- **Query exports consumed by charts**: `analysis/exports/CSVs/`
+- **Python chart scripts (if regenerating assets/data)**: `analysis/py/`
+- **Generated static chart images (if used by page)**: `visualizations/`
+
+When adding a chart, first decide whether the page should render it:
+- dynamically from CSV in browser, or
+- as a pre-generated static image.
+
+Keep that choice consistent for the new chart.
 
 ---
 
-## Important browser note (file access)
+## 3) Standard workflow to add a new chart
 
-If you open `index.html` directly with `file://`, many browsers block local CSV fetches.
+1. **Create/confirm the dataset**
+   - Add or update the SQL/Python logic that produces the chart dataset.
+   - Ensure the corresponding CSV is present in `analysis/exports/CSVs/` with stable column names.
 
-Use a local server from the repo root, for example:
+2. **Register the chart in `index.html`**
+   - Add one new chart entry in the page chart config (id, title, source path, x/y fields, chart type).
+   - Reuse existing patterns for styling/colors/axis options.
 
-```bash
-python -m http.server 8000
-```
+3. **Validate in browser**
+   - Start local server.
+   - Hard refresh page.
+   - Confirm the chart renders and no console/network errors appear.
 
-Then open:
-
-```text
-http://localhost:8000/index.html
-```
-
----
-
-## Drop-in example to integrate
-
-Use this pattern directly in your existing file.
-
-### 1) Add this dashboard markup in `<main>`
-
-```html
-<section id="dashboard" aria-label="Business charts">
-  <h2>Analytics Dashboard</h2>
-  <div id="chartGrid" class="chart-grid"></div>
-</section>
-```
-
-### 2) Add supporting CSS
-
-```css
-#dashboard {
-  margin-top: 1.5rem;
-}
-
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-
-.chart-card {
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
-  border-radius: 12px;
-  padding: 0.75rem;
-}
-
-.chart-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
-.chart-error {
-  color: #c0392b;
-  font-size: 0.9rem;
-}
-```
-
-### 3) Add these CDN scripts before your main `<script>`
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-```
-
-### 4) Extend your script with a chart renderer
-
-```html
-<script>
-  const CHART_CONFIGS = [
-    {
-      id: 'revenueOverTime',
-      title: 'Revenue Over Time',
-      csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv',
-      type: 'line',
-      xKey: 'order_date',
-      yKey: 'revenue'
-    },
-    {
-      id: 'ordersOverTime',
-      title: 'Orders Over Time',
-      csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv',
-      type: 'bar',
-      xKey: 'order_date',
-      yKey: 'orders'
-    }
-    // Add the rest of your CSV files the same way.
-  ];
-
-  async function loadCsvRows(csvPath) {
-    const response = await fetch(csvPath);
-    if (!response.ok) {
-      throw new Error(`Failed to load ${csvPath}: ${response.status}`);
-    }
-
-    const csvText = await response.text();
-    const parsed = Papa.parse(csvText, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true
-    });
-
-    if (parsed.errors?.length) {
-      throw new Error(parsed.errors[0].message);
-    }
-
-    return parsed.data;
-  }
-
-  function createChartCard(container, { id, title }) {
-    const card = document.createElement('article');
-    card.className = 'chart-card';
-
-    const h3 = document.createElement('h3');
-    h3.className = 'chart-title';
-    h3.textContent = title;
-
-    const canvas = document.createElement('canvas');
-    canvas.id = `chart-${id}`;
-
-    card.append(h3, canvas);
-    container.appendChild(card);
-    return canvas;
-  }
-
-  function renderErrorCard(container, title, message) {
-    const card = document.createElement('article');
-    card.className = 'chart-card';
-    card.innerHTML = `
-      <h3 class="chart-title">${title}</h3>
-      <p class="chart-error">${message}</p>
-    `;
-    container.appendChild(card);
-  }
-
-  async function renderDashboard() {
-    const grid = document.getElementById('chartGrid');
-
-    for (const config of CHART_CONFIGS) {
-      try {
-        const rows = await loadCsvRows(config.csvPath);
-        const labels = rows.map((r) => r[config.xKey]);
-        const values = rows.map((r) => r[config.yKey]);
-
-        const canvas = createChartCard(grid, config);
-
-        new Chart(canvas.getContext('2d'), {
-          type: config.type,
-          data: {
-            labels,
-            datasets: [
-              {
-                label: config.title,
-                data: values,
-                borderColor: '#1769ff',
-                backgroundColor: 'rgba(23, 105, 255, 0.25)',
-                fill: config.type === 'line',
-                tension: 0.25
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { ticks: { maxRotation: 45, minRotation: 0 } },
-              y: { beginAtZero: true }
-            }
-          }
-        });
-      } catch (error) {
-        renderErrorCard(grid, config.title, `Could not render chart: ${error.message}`);
-      }
-    }
-  }
-
-  renderDashboard();
-</script>
-```
+4. **Basic data sanity checks**
+   - Confirm row count is non-zero.
+   - Confirm x-axis field is ordered as expected (especially dates).
+   - Confirm numeric field is parsed as number (not string).
 
 ---
 
-## Suggested next improvement (optional)
+## 4) Chart config checklist (before committing)
 
-When you add all CSVs, create a small **column mapping helper** to normalize field names (`date`, `revenue`, `orders`, etc.), since each CSV may use slightly different headers.
+For every new chart entry in `index.html`, verify:
 
-This keeps your chart loop clean and prevents brittle hardcoded assumptions.
+- unique chart `id`
+- human-readable `title`
+- correct relative CSV path
+- correct `x` and `y` column names (exact match with CSV header)
+- suitable chart `type` for the metric
+- axis/label formatting is readable on narrow screens
+
+If any of these are wrong, the chart may silently render empty or with misleading values.
+
+---
+
+## 5) CSV contract for frontend compatibility
+
+To reduce breakage, exported CSVs should follow these rules:
+
+- Header row present.
+- No duplicate column names.
+- Dates in ISO-like format (`YYYY-MM-DD`) when used on x-axis.
+- Metric columns contain numeric values only (no currency symbols in raw field).
+- Keep naming predictable (example: `order_date`, `revenue`, `orders`, `customers`).
+
+If a query requires display formatting (e.g., `$1,234`), format in tooltip/label logic in frontend, not in raw CSV data.
+
+---
+
+## 6) Troubleshooting
+
+### Chart does not appear
+- Check browser DevTools Network tab for 404 on CSV path.
+- Verify chart config keys match CSV headers exactly.
+- Confirm server is running from repository root.
+
+### Chart appears but looks wrong
+- Validate date sorting before rendering.
+- Validate numeric parsing for y-values.
+- Check for null/empty records in CSV.
+
+### Only some charts render
+- Isolate the failing chart config and test its CSV path manually in browser.
+- Keep per-chart error handling so one failed chart does not block others.
+
+---
+
+## 7) Definition of done for a new chart
+
+A chart addition is complete when:
+
+- dataset export exists and is stable,
+- chart is wired into `index.html`,
+- local page renders correctly via `http://localhost:8000/index.html`,
+- no fetch/parse errors occur in console,
+- chart is readable on desktop and mobile widths.

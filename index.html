@@ -420,7 +420,7 @@
 
       const TAB_VIEWS = {
         revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', fillArea: true, lineTension: 0.35, reduceTickLabels: true },
-        ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number' },
+        ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true },
         orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency' },
         geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency' },
         geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
@@ -586,7 +586,11 @@
                 y: {
                   beginAtZero: true,
                   ticks: {
+                    precision: config.integerYAxis ? 0 : undefined,
                     callback(value) {
+                      if (config.integerYAxis && !Number.isInteger(Number(value))) {
+                        return '';
+                      }
                       return formatTickValue(value, config.axisTickFormat);
                     }
                   }

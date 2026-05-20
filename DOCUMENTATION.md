@@ -1,5 +1,21 @@
 # Chart Implementation Plan for `index.html`
 
+## Quick run instructions
+
+From the repository root, start a local web server:
+
+```bash
+python -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/index.html
+```
+
+---
+
 Below is the **best low-friction approach** to render charts directly in your current `index.html` using the CSV files in `analysis/exports/CSVs/`.
 
 ## Why this approach

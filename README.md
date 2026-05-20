@@ -62,6 +62,20 @@ The current submission includes:
 - **Approach:** Join `raw_payments` to `raw_orders` for order-month context and aggregate payment amount by month and payment method.
 - **Current finding:** Credit card payments dominate recorded payment revenue, followed by bank transfer, gift card, and coupon activity.
 
+## Run the dashboard locally
+
+From the repository root, start a local web server:
+
+```bash
+python -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/index.html
+```
+
 ## Outputs
 
 ### SQL and CSV Outputs

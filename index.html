@@ -518,7 +518,7 @@
           const values = rows.map((row) => row[config.yKey]);
           const canvas = createChartCard(container, config);
 
-          new Chart(canvas.getContext('2d'), {
+          const chartInstance = new Chart(canvas.getContext('2d'), {
             type: config.type,
             data: {
               labels,
@@ -549,36 +549,19 @@
               }
             }
           });
+
+          return chartInstance;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           console.error(`Failed to render chart "${config.title}":`, error);
           renderErrorCard(container, config.title, `Could not render chart: ${message}`);
+          return null;
         }
-      }
-
-      async function renderTabContent(tabId) {
-        const container = document.getElementById('tabContent');
-        container.textContent = '';
-
-        if (tabId === 'home') {
-          const summary = document.createElement('p');
-          summary.className = 'chart-error';
-          summary.textContent = 'Select a tab to view an individual analytics chart.';
-          container.append(summary);
-          return;
-        }
-
-        const config = CHART_CONFIGS.find((entry) => entry.id === tabId);
-        if (!config) {
-          renderErrorCard(container, 'Unknown tab', `No chart configuration found for "${tabId}".`);
-          return;
-        }
-
-        await renderSingleChart(container, config);
       }
 
       function initializeTabs() {
         const tabButtons = Array.from(document.querySelectorAll('.tab-button[role="tab"]'));
+        let currentChartInstance = null;
 
         async function activateTab(tabId) {
           const activeButton = tabButtons.find((button) => button.dataset.tab === tabId);
@@ -594,8 +577,28 @@
 
           const panel = document.getElementById('tabContent');
           panel.setAttribute('aria-labelledby', activeButton.id);
+          panel.textContent = '';
 
-          await renderTabContent(tabId);
+          if (currentChartInstance) {
+            currentChartInstance.destroy();
+            currentChartInstance = null;
+          }
+
+          if (tabId === 'home') {
+            const summary = document.createElement('p');
+            summary.className = 'chart-error';
+            summary.textContent = 'Select a tab to view an individual analytics chart.';
+            panel.append(summary);
+            return;
+          }
+
+          const config = CHART_CONFIGS.find((entry) => entry.id === tabId);
+          if (!config) {
+            renderErrorCard(panel, 'Unknown tab', `No chart configuration found for "${tabId}".`);
+            return;
+          }
+
+          currentChartInstance = await renderSingleChart(panel, config);
         }
 
         tabButtons.forEach((button) => {

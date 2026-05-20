@@ -192,6 +192,32 @@
         );
       }
 
+      .tabs {
+        margin-top: 1.75rem;
+      }
+
+      .tab-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+
+      .tab-button {
+        background: color-mix(in srgb, var(--surface) 90%, var(--bg));
+        color: var(--text);
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      }
+
+      .tab-button[aria-selected='true'] {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+
+      #tabContent {
+        margin-top: 0.9rem;
+      }
+
       dialog {
         border: none;
         border-radius: 16px;
@@ -275,10 +301,25 @@
         </div>
       </section>
 
+      <section class="tabs" aria-label="Dashboard views">
+        <div id="tabList" class="tab-list" role="tablist" aria-label="Dashboard tabs">
+          <button id="tab-home" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="tabContent" data-tab="home">home</button>
+          <button id="tab-revenueOverTime" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="revenueOverTime">revenueOverTime</button>
+          <button id="tab-ordersOverTime" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="ordersOverTime">ordersOverTime</button>
+          <button id="tab-orderValueOverTime" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="orderValueOverTime">orderValueOverTime</button>
+          <button id="tab-geographyRevenue" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="geographyRevenue">geographyRevenue</button>
+          <button id="tab-geographyCustomers" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="geographyCustomers">geographyCustomers</button>
+          <button id="tab-paymentMethodRevenue" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="paymentMethodRevenue">paymentMethodRevenue</button>
+          <button id="tab-bestSellers" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="bestSellers">bestSellers</button>
+          <button id="tab-abandonedCartRecovery" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="abandonedCartRecovery">abandonedCartRecovery</button>
+          <button id="tab-productQualityRevenue" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="productQualityRevenue">productQualityRevenue</button>
+        </div>
+      </section>
+
       <section id="dashboard" aria-label="Business charts">
         <h2>Analytics Dashboard</h2>
         <p id="protocolWarning" class="chart-error" hidden></p>
-        <div id="chartGrid" class="chart-grid"></div>
+        <div id="tabContent" role="tabpanel" aria-labelledby="tab-home"></div>
       </section>
     </main>
 
@@ -470,54 +511,102 @@
         container.append(card);
       }
 
-      async function renderDashboard() {
-        const grid = document.getElementById('chartGrid');
-        grid.textContent = '';
+      async function renderSingleChart(container, config) {
+        try {
+          const rows = await loadCsvRows(config.csvPath);
+          const labels = rows.map((row) => row[config.xKey]);
+          const values = rows.map((row) => row[config.yKey]);
+          const canvas = createChartCard(container, config);
 
-        for (const config of CHART_CONFIGS) {
-          try {
-            const rows = await loadCsvRows(config.csvPath);
-            const labels = rows.map((row) => row[config.xKey]);
-            const values = rows.map((row) => row[config.yKey]);
-            const canvas = createChartCard(grid, config);
-
-            new Chart(canvas.getContext('2d'), {
-              type: config.type,
-              data: {
-                labels,
-                datasets: [
-                  {
-                    label: config.title,
-                    data: values,
-                    borderColor: '#1769ff',
-                    backgroundColor: 'rgba(23, 105, 255, 0.28)',
-                    borderWidth: 2,
-                    tension: 0.25,
-                    fill: config.type === 'line'
-                  }
-                ]
+          new Chart(canvas.getContext('2d'), {
+            type: config.type,
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: config.title,
+                  data: values,
+                  borderColor: '#1769ff',
+                  backgroundColor: 'rgba(23, 105, 255, 0.28)',
+                  borderWidth: 2,
+                  tension: 0.25,
+                  fill: config.type === 'line'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false
+                }
               },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    display: false
-                  }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true
-                  }
+              scales: {
+                y: {
+                  beginAtZero: true
                 }
               }
-            });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.error(`Failed to render chart "${config.title}":`, error);
-            renderErrorCard(grid, config.title, `Could not render chart: ${message}`);
-          }
+            }
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`Failed to render chart "${config.title}":`, error);
+          renderErrorCard(container, config.title, `Could not render chart: ${message}`);
         }
+      }
+
+      async function renderTabContent(tabId) {
+        const container = document.getElementById('tabContent');
+        container.textContent = '';
+
+        if (tabId === 'home') {
+          const summary = document.createElement('p');
+          summary.className = 'chart-error';
+          summary.textContent = 'Select a tab to view an individual analytics chart.';
+          container.append(summary);
+          return;
+        }
+
+        const config = CHART_CONFIGS.find((entry) => entry.id === tabId);
+        if (!config) {
+          renderErrorCard(container, 'Unknown tab', `No chart configuration found for "${tabId}".`);
+          return;
+        }
+
+        await renderSingleChart(container, config);
+      }
+
+      function initializeTabs() {
+        const tabButtons = Array.from(document.querySelectorAll('.tab-button[role="tab"]'));
+
+        async function activateTab(tabId) {
+          const activeButton = tabButtons.find((button) => button.dataset.tab === tabId);
+          if (!activeButton) {
+            return;
+          }
+
+          tabButtons.forEach((button) => {
+            const isActive = button === activeButton;
+            button.setAttribute('aria-selected', String(isActive));
+            button.tabIndex = isActive ? 0 : -1;
+          });
+
+          const panel = document.getElementById('tabContent');
+          panel.setAttribute('aria-labelledby', activeButton.id);
+
+          await renderTabContent(tabId);
+        }
+
+        tabButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            activateTab(button.dataset.tab);
+          });
+        });
+
+        activateTab('home').catch((error) => {
+          console.error('Failed to render initial tab content:', error);
+        });
       }
 
       function initializeDashboard() {
@@ -565,9 +654,7 @@
       initializeDashboard();
       showProtocolWarning();
       applyTheme(getStoredTheme());
-      renderDashboard().catch((error) => {
-        console.error('Failed to render dashboard:', error);
-      });
+      initializeTabs();
     </script>
   </body>
 </html>

@@ -391,6 +391,87 @@
         applyTheme(themeChoice);
       }
 
+
+      async function loadCsvRows(csvPath) {
+        const response = await fetch(csvPath);
+        if (!response.ok) {
+          throw new Error(`Failed to load CSV: ${csvPath} (${response.status} ${response.statusText})`);
+        }
+
+        const csvText = await response.text();
+        const parseResult = Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true
+        });
+
+        if (parseResult.errors && parseResult.errors.length > 0) {
+          throw new Error(`Failed to parse CSV: ${csvPath} (${parseResult.errors[0].message})`);
+        }
+
+        return parseResult.data;
+      }
+
+      function createChartCard(container, config) {
+        const card = document.createElement('article');
+        card.className = 'chart-card';
+
+        const title = document.createElement('h3');
+        title.textContent = config.title;
+
+        const canvas = document.createElement('canvas');
+        canvas.id = `${config.id}Chart`;
+
+        card.append(title, canvas);
+        container.append(card);
+
+        return canvas;
+      }
+
+      async function renderDashboard() {
+        const grid = document.getElementById('chartGrid');
+        grid.textContent = '';
+
+        for (const config of CHART_CONFIGS) {
+          const rows = await loadCsvRows(config.csvPath);
+          const labels = rows.map((row) => row[config.xKey]);
+          const values = rows.map((row) => row[config.yKey]);
+          const canvas = createChartCard(grid, config);
+
+          new Chart(canvas.getContext('2d'), {
+            type: config.type,
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: config.title,
+                  data: values,
+                  borderColor: '#1769ff',
+                  backgroundColor: 'rgba(23, 105, 255, 0.28)',
+                  borderWidth: 2,
+                  tension: 0.25,
+                  fill: config.type === 'line'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+          });
+        }
+      }
+
       function initializeDashboard() {
         const chartBars = document.querySelectorAll('.chart-bar');
         chartBars.forEach((bar) => {
@@ -435,6 +516,9 @@
 
       initializeDashboard();
       applyTheme(getStoredTheme());
+      renderDashboard().catch((error) => {
+        console.error('Failed to render dashboard:', error);
+      });
     </script>
   </body>
 </html>

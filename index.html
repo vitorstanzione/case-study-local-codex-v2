@@ -268,6 +268,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
     <script>
       const CHART_CONFIGS = [
@@ -352,7 +353,7 @@
         geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency', sortBy: 'total_revenue', sortOrder: 'desc' },
         geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number', sortBy: 'number_of_customers', sortOrder: 'desc', integerYAxis: true, tooltipValueFormat: 'compact' },
         paymentMethodRevenue: { id: 'paymentMethodRevenue', title: 'Revenue by Payment Method', csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv', chartType: 'bar', xKey: 'order_month', yKey: 'revenue', seriesKey: 'payment_method', horizontalBarLike: false, maxLabels: 36, heightClass: 'chart-height-md', axisTickFormat: 'currency', forceLegend: true },
-        bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'number' },
+        bestSellers: { id: 'bestSellers', title: 'Best Sellers', csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv', chartType: 'bar', xKey: 'product_name', yKey: 'total_units_sold', horizontalBarLike: true, maxLabels: 15, heightClass: 'chart-height-lg', axisTickFormat: 'number', integerYAxis: true, tooltipValueFormat: 'integer', sortBy: 'total_units_sold', sortOrder: 'desc', showDataLabels: true },
         abandonedCartRecovery: { id: 'abandonedCartRecovery', title: 'Abandoned Cart Recovery', csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv', chartType: 'bar', xKey: 'traffic_source', yKey: 'cart_recovery_rate', horizontalBarLike: false, maxLabels: 20, heightClass: 'chart-height-md', axisTickFormat: 'percent' },
         productQualityRevenue: { id: 'productQualityRevenue', title: 'Product Quality vs Revenue', csvPath: 'analysis/exports/CSVs/01_09_product_quality_revenue.csv', chartType: 'bar', xKey: 'product_name', yKey: 'item_revenue', horizontalBarLike: true, maxLabels: 10, heightClass: 'chart-height-lg', axisTickFormat: 'currency' }
       };
@@ -366,6 +367,10 @@
       let activeChart = null;
       let activeTabId = 'home';
       let tabRenderVersion = 0;
+
+      if (window.ChartDataLabels) {
+        Chart.register(window.ChartDataLabels);
+      }
 
       function getSystemTheme() {
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -462,6 +467,9 @@
       function formatTooltipValue(value, formatType, axisTickFormat) {
         if (formatType === 'compact') {
           return Number(value).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+        }
+        if (formatType === 'integer') {
+          return Math.round(Number(value)).toLocaleString('en-US');
         }
         return formatTickValue(value, axisTickFormat);
       }
@@ -563,6 +571,15 @@
               plugins: {
                 legend: {
                   display: Boolean(config.forceLegend) || datasets.length > 1
+                },
+                datalabels: {
+                  display: Boolean(config.showDataLabels),
+                  align: 'right',
+                  anchor: 'end',
+                  color: '#0f2b5b',
+                  formatter(value) {
+                    return Math.round(Number(value)).toLocaleString('en-US');
+                  }
                 },
                 tooltip: {
                   callbacks: {

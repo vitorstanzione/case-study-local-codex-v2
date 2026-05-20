@@ -119,6 +119,33 @@
         font-size: 1.05rem;
       }
 
+      .tabs {
+        margin-top: 1.75rem;
+      }
+
+      .tab-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+        padding-bottom: 0.75rem;
+      }
+
+      .tab-button {
+        background: color-mix(in srgb, var(--surface) 90%, var(--bg));
+        color: var(--text);
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      }
+
+      .tab-button[aria-selected='true'] {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .tab-panel {
+        margin-top: 1rem;
+      }
+
       .chart {
         margin-top: 1rem;
         display: grid;
@@ -275,10 +302,17 @@
         </div>
       </section>
 
-      <section id="dashboard" aria-label="Business charts">
-        <h2>Analytics Dashboard</h2>
-        <p id="protocolWarning" class="chart-error" hidden></p>
-        <div id="chartGrid" class="chart-grid"></div>
+      <section class="tabs" aria-label="Dashboard tabs">
+        <div id="dashboardTabList" class="tab-list" role="tablist" aria-label="Dashboard views"></div>
+        <section
+          id="homePanel"
+          class="tab-panel"
+          role="tabpanel"
+          aria-labelledby="tab-home"
+        >
+          <p class="chart-error">Home panel placeholder.</p>
+        </section>
+        <div id="dynamicTabPanels"></div>
       </section>
     </main>
 
@@ -470,11 +504,86 @@
         container.append(card);
       }
 
-      async function renderDashboard() {
-        const grid = document.getElementById('chartGrid');
-        grid.textContent = '';
+      function createTabSystem() {
+        const tabList = document.getElementById('dashboardTabList');
+        const dynamicPanels = document.getElementById('dynamicTabPanels');
+        const homePanel = document.getElementById('homePanel');
 
+        tabList.textContent = '';
+        dynamicPanels.textContent = '';
+
+        const tabs = [];
+        const panels = [];
+
+        const homeTab = document.createElement('button');
+        homeTab.id = 'tab-home';
+        homeTab.type = 'button';
+        homeTab.className = 'tab-button';
+        homeTab.setAttribute('role', 'tab');
+        homeTab.setAttribute('aria-selected', 'true');
+        homeTab.setAttribute('aria-controls', 'homePanel');
+        homePanel.hidden = false;
+        tabs.push(homeTab);
+        panels.push(homePanel);
+        homeTab.textContent = 'Home';
+        tabList.append(homeTab);
+
+        CHART_CONFIGS.forEach((config, index) => {
+          const tab = document.createElement('button');
+          tab.id = `tab-${config.id}`;
+          tab.type = 'button';
+          tab.className = 'tab-button';
+          tab.setAttribute('role', 'tab');
+          tab.setAttribute('aria-selected', 'false');
+          tab.setAttribute('aria-controls', `panel-${config.id}`);
+          tab.textContent = config.title;
+          tabList.append(tab);
+
+          const panel = document.createElement('section');
+          panel.id = `panel-${config.id}`;
+          panel.className = 'tab-panel';
+          panel.setAttribute('role', 'tabpanel');
+          panel.setAttribute('aria-labelledby', tab.id);
+          panel.hidden = true;
+
+          const heading = document.createElement('h2');
+          heading.textContent = config.title;
+          const warning = document.createElement('p');
+          if (index === 0) {
+            warning.id = 'protocolWarning';
+          }
+          warning.className = 'chart-error';
+          warning.hidden = true;
+          const grid = document.createElement('div');
+          grid.id = `chartGrid-${config.id}`;
+          grid.className = 'chart-grid';
+
+          panel.append(heading, warning, grid);
+          dynamicPanels.append(panel);
+
+          tabs.push(tab);
+          panels.push(panel);
+        });
+
+        function setActiveTab(activeTab) {
+          tabs.forEach((tab, index) => {
+            const isActive = tab === activeTab;
+            tab.setAttribute('aria-selected', String(isActive));
+            panels[index].hidden = !isActive;
+          });
+        }
+
+        tabs.forEach((tab) => {
+          tab.addEventListener('click', () => {
+            setActiveTab(tab);
+          });
+        });
+      }
+
+      async function renderDashboardPanels() {
         for (const config of CHART_CONFIGS) {
+          const grid = document.getElementById(`chartGrid-${config.id}`);
+
           try {
             const rows = await loadCsvRows(config.csvPath);
             const labels = rows.map((row) => row[config.xKey]);
@@ -563,9 +672,10 @@
       });
 
       initializeDashboard();
+      createTabSystem();
       showProtocolWarning();
       applyTheme(getStoredTheme());
-      renderDashboard().catch((error) => {
+      renderDashboardPanels().catch((error) => {
         console.error('Failed to render dashboard:', error);
       });
     </script>

@@ -106,6 +106,19 @@
         font-size: 1.05rem;
       }
 
+      #dashboard {
+        margin-top: 1.75rem;
+        padding: 1rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--surface) 85%, var(--bg));
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      }
+
+      #dashboard h2 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
       .chart {
         margin-top: 1rem;
         display: grid;
@@ -130,14 +143,15 @@
         gap: 0.75rem;
       }
 
-      .chart-card h3 {
+      .chart-title {
         margin: 0;
         font-size: 0.95rem;
+        color: var(--text);
       }
 
       .chart-card canvas {
         width: 100%;
-        min-height: 160px;
+        min-height: 240px;
       }
 
       .chart-error {
@@ -452,6 +466,7 @@
         card.className = 'chart-card';
 
         const title = document.createElement('h3');
+        title.className = 'chart-title';
         title.textContent = config.title;
 
         const canvas = document.createElement('canvas');
@@ -468,6 +483,7 @@
         card.className = 'chart-card';
 
         const cardTitle = document.createElement('h3');
+        cardTitle.className = 'chart-title';
         cardTitle.textContent = title;
 
         const errorMessage = document.createElement('p');

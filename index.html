@@ -51,7 +51,7 @@
       }
 
       .card {
-        width: min(700px, 100%);
+        width: min(900px, 100%);
         background: color-mix(in srgb, var(--surface) 90%, transparent);
         border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
         border-radius: 18px;
@@ -91,6 +91,56 @@
       .about-btn:hover,
       .theme-btn:hover {
         background: var(--primary-hover);
+      }
+
+      .dashboard {
+        margin-top: 1.75rem;
+        padding: 1rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--surface) 85%, var(--bg));
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      }
+
+      .dashboard h2 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
+      .chart {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .chart-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 50px;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .chart-label,
+      .chart-value {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .chart-track {
+        height: 12px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--muted) 28%, var(--surface));
+        overflow: hidden;
+      }
+
+      .chart-bar {
+        width: calc(var(--value, 0) * 1%);
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--primary) 72%, var(--surface)),
+          var(--primary)
+        );
       }
 
       dialog {
@@ -156,6 +206,28 @@
       <div class="actions">
         <button id="aboutButton" class="about-btn" type="button">About</button>
       </div>
+
+      <section class="dashboard" aria-labelledby="dashboardTitle">
+        <h2 id="dashboardTitle">Weekly Performance Snapshot</h2>
+        <p style="margin-top: 0.35rem">Demo chart bars inherit active theme colors.</p>
+        <div class="chart" id="performanceChart">
+          <article class="chart-row">
+            <span class="chart-label">Revenue</span>
+            <div class="chart-track"><div class="chart-bar" style="--value: 76"></div></div>
+            <span class="chart-value">76%</span>
+          </article>
+          <article class="chart-row">
+            <span class="chart-label">Orders</span>
+            <div class="chart-track"><div class="chart-bar" style="--value: 61"></div></div>
+            <span class="chart-value">61%</span>
+          </article>
+          <article class="chart-row">
+            <span class="chart-label">Retention</span>
+            <div class="chart-track"><div class="chart-bar" style="--value: 48"></div></div>
+            <span class="chart-value">48%</span>
+          </article>
+        </div>
+      </section>
     </main>
 
     <dialog id="aboutModal" aria-labelledby="aboutTitle">
@@ -204,6 +276,15 @@
         applyTheme(themeChoice);
       }
 
+      function initializeDashboard() {
+        const chartBars = document.querySelectorAll('.chart-bar');
+        chartBars.forEach((bar) => {
+          const numericValue = Number.parseFloat(bar.style.getPropertyValue('--value'));
+          const clamped = Number.isFinite(numericValue) ? Math.min(100, Math.max(0, numericValue)) : 0;
+          bar.style.setProperty('--value', String(clamped));
+        });
+      }
+
       aboutButton.addEventListener('click', () => {
         modal.showModal();
       });
@@ -237,6 +318,7 @@
         }
       });
 
+      initializeDashboard();
       applyTheme(getStoredTheme());
     </script>
   </body>

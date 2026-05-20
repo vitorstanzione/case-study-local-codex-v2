@@ -255,6 +255,113 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
     <script>
+      const CHART_CONFIGS = [
+        {
+          id: 'revenueOverTime',
+          title: 'Revenue Over Time',
+          csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv',
+          type: 'line',
+          xKey: 'revenue_month',
+          yKey: 'revenue'
+        },
+        {
+          id: 'ordersOverTime',
+          title: 'Orders Over Time',
+          csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv',
+          type: 'bar',
+          xKey: 'order_month',
+          yKey: 'total_orders'
+        },
+        {
+          id: 'columnsByTable',
+          title: 'Columns by Table',
+          csvPath: 'analysis/exports/CSVs/00_columns.csv',
+          type: 'bar',
+          xKey: 'table_name',
+          yKey: 'ordinal_position'
+        },
+        {
+          id: 'dateRangeByTable',
+          title: 'Date Range by Table',
+          csvPath: 'analysis/exports/CSVs/00_date_range.csv',
+          type: 'line',
+          xKey: 'table_name',
+          yKey: 'row_count'
+        },
+        {
+          id: 'rowCountByTable',
+          title: 'Row Count by Table',
+          csvPath: 'analysis/exports/CSVs/00_row_count.csv',
+          type: 'bar',
+          xKey: 'table_name',
+          yKey: 'row_count'
+        },
+        {
+          id: 'tableInventory',
+          title: 'Table Inventory',
+          csvPath: 'analysis/exports/CSVs/00_tables.csv',
+          type: 'bar',
+          xKey: 'table_name',
+          yKey: 'table_name'
+        },
+        {
+          id: 'orderValueOverTime',
+          title: 'Average Order Value Over Time',
+          csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv',
+          type: 'line',
+          xKey: 'order_month',
+          yKey: 'average_order_value'
+        },
+        {
+          id: 'geographyRevenue',
+          title: 'Revenue by Geography',
+          csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv',
+          type: 'bar',
+          xKey: 'city',
+          yKey: 'total_revenue'
+        },
+        {
+          id: 'geographyCustomers',
+          title: 'Customers by Country',
+          csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv',
+          type: 'bar',
+          xKey: 'country',
+          yKey: 'number_of_customers'
+        },
+        {
+          id: 'paymentMethodRevenue',
+          title: 'Revenue by Payment Method',
+          csvPath: 'analysis/exports/CSVs/01_06_payment_method_revenue.csv',
+          type: 'line',
+          xKey: 'order_month',
+          yKey: 'revenue'
+        },
+        {
+          id: 'bestSellers',
+          title: 'Best Sellers',
+          csvPath: 'analysis/exports/CSVs/01_07_best_sellers.csv',
+          type: 'bar',
+          xKey: 'product_name',
+          yKey: 'total_units_sold'
+        },
+        {
+          id: 'abandonedCartRecovery',
+          title: 'Abandoned Cart Recovery',
+          csvPath: 'analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv',
+          type: 'bar',
+          xKey: 'traffic_source',
+          yKey: 'cart_recovery_rate'
+        },
+        {
+          id: 'productQualityRevenue',
+          title: 'Product Quality vs Revenue',
+          csvPath: 'analysis/exports/CSVs/01_09_product_quality_revenue.csv',
+          type: 'bar',
+          xKey: 'product_name',
+          yKey: 'item_revenue'
+        }
+      ];
+
       const STORAGE_KEY = 'themePreference';
       const root = document.documentElement;
       const modal = document.getElementById('aboutModal');

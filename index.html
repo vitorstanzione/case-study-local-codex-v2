@@ -506,16 +506,40 @@
         });
       }
 
+      function parseYearMonthKey(value) {
+        if (typeof value !== 'string') return null;
+        const match = value.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return null;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+          return null;
+        }
+
+        return year * 100 + month;
+      }
+
       async function renderSingleChart(container, config) {
         try {
           const rows = await loadCsvRows(config.csvPath);
           const percentScale = resolvePercentScale(config, rows);
+          const isTimeSeries = config.id === 'revenueOverTime';
           const sortedRows = config.sortBy
             ? [...rows].sort((a, b) => {
                 const left = Number(a[config.sortBy]);
                 const right = Number(b[config.sortBy]);
                 const direction = config.sortOrder === 'asc' ? 1 : -1;
                 return (left - right) * direction;
+              })
+            : isTimeSeries
+            ? [...rows].sort((a, b) => {
+                const left = parseYearMonthKey(a.revenue_month);
+                const right = parseYearMonthKey(b.revenue_month);
+                if (left === null && right === null) return 0;
+                if (left === null) return 1;
+                if (right === null) return -1;
+                return left - right;
               })
             : rows;
           const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;

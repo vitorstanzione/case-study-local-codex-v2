@@ -93,19 +93,6 @@
         background: var(--primary-hover);
       }
 
-      #dashboard {
-        margin-top: 1.75rem;
-        padding: 1rem;
-        border-radius: 14px;
-        background: color-mix(in srgb, var(--surface) 85%, var(--bg));
-        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-      }
-
-      #dashboard h2 {
-        margin: 0;
-        font-size: 1.05rem;
-      }
-
       .chart {
         margin-top: 1rem;
         display: grid;
@@ -259,11 +246,8 @@
         </div>
       </section>
 
-      <section id="dashboard" aria-label="Business charts">
-        <h2>Analytics Dashboard</h2>
-        <p id="protocolWarning" class="chart-error" hidden></p>
-        <div id="tabContent" role="tabpanel" aria-labelledby="tab-home"></div>
-      </section>
+      <p id="protocolWarning" class="chart-error" hidden></p>
+      <div id="tabContent" role="tabpanel" aria-labelledby="tab-home"></div>
     </main>
 
     <dialog id="aboutModal" aria-labelledby="aboutTitle">

@@ -112,6 +112,41 @@
         gap: 0.75rem;
       }
 
+      .chart-grid {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.9rem;
+      }
+
+      .chart-card {
+        background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+        border-radius: 12px;
+        padding: 0.9rem;
+        min-height: 220px;
+        display: grid;
+        align-content: start;
+        gap: 0.75rem;
+      }
+
+      .chart-card h3 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .chart-card canvas {
+        width: 100%;
+        min-height: 160px;
+      }
+
+      .chart-error {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
       .chart-row {
         display: grid;
         grid-template-columns: 120px 1fr 50px;
@@ -428,47 +463,68 @@
         return canvas;
       }
 
+      function renderErrorCard(container, title, message) {
+        const card = document.createElement('article');
+        card.className = 'chart-card';
+
+        const cardTitle = document.createElement('h3');
+        cardTitle.textContent = title;
+
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'chart-error';
+        errorMessage.textContent = message;
+
+        card.append(cardTitle, errorMessage);
+        container.append(card);
+      }
+
       async function renderDashboard() {
         const grid = document.getElementById('chartGrid');
         grid.textContent = '';
 
         for (const config of CHART_CONFIGS) {
-          const rows = await loadCsvRows(config.csvPath);
-          const labels = rows.map((row) => row[config.xKey]);
-          const values = rows.map((row) => row[config.yKey]);
-          const canvas = createChartCard(grid, config);
+          try {
+            const rows = await loadCsvRows(config.csvPath);
+            const labels = rows.map((row) => row[config.xKey]);
+            const values = rows.map((row) => row[config.yKey]);
+            const canvas = createChartCard(grid, config);
 
-          new Chart(canvas.getContext('2d'), {
-            type: config.type,
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: config.title,
-                  data: values,
-                  borderColor: '#1769ff',
-                  backgroundColor: 'rgba(23, 105, 255, 0.28)',
-                  borderWidth: 2,
-                  tension: 0.25,
-                  fill: config.type === 'line'
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: false
-                }
+            new Chart(canvas.getContext('2d'), {
+              type: config.type,
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: config.title,
+                    data: values,
+                    borderColor: '#1769ff',
+                    backgroundColor: 'rgba(23, 105, 255, 0.28)',
+                    borderWidth: 2,
+                    tension: 0.25,
+                    fill: config.type === 'line'
+                  }
+                ]
               },
-              scales: {
-                y: {
-                  beginAtZero: true
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
                 }
               }
-            }
-          });
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`Failed to render chart "${config.title}":`, error);
+            renderErrorCard(grid, config.title, `Could not render chart: ${message}`);
+          }
         }
       }
 

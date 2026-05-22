@@ -495,6 +495,7 @@
       let revenueYearFilter = 'all';
       let ordersYearFilter = 'all';
       let orderValueYearFilter = 'all';
+      let geographyRevenueCountryFilter = 'all';
 
       if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -652,10 +653,15 @@
         try {
           const rows = await loadCsvRows(config.csvPath);
           const selectedYear = options.selectedYear || 'all';
-          const filteredRows =
+          const yearFilteredRows =
             selectedYear !== 'all'
               ? rows.filter((row) => String(row[config.xKey] || '').startsWith(`${selectedYear}-`))
               : rows;
+          const selectedCountry = options.selectedCountry || 'all';
+          const filteredRows =
+            config.id === 'geographyRevenue' && selectedCountry !== 'all'
+              ? yearFilteredRows.filter((row) => String(row.country || '') === selectedCountry)
+              : yearFilteredRows;
           const percentScale = resolvePercentScale(config, rows);
           const isTimeSeries = config.id === 'revenueOverTime' || config.id === 'ordersOverTime';
           const sortedRows = config.sortBy
@@ -973,6 +979,48 @@
             panel.append(filterRow);
           }
 
+          const supportsGeographyRevenueFilter = tabId === 'geographyRevenue';
+          if (supportsGeographyRevenueFilter) {
+            const rows = await loadCsvRows(config.csvPath);
+            if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
+              return;
+            }
+
+            const countryOptions = [...new Set(rows.map((row) => String(row.country || '')).filter((country) => Boolean(country)))].sort();
+            const filterRow = document.createElement('div');
+            filterRow.className = 'tab-filter-row';
+
+            const label = document.createElement('label');
+            label.htmlFor = `${tabId}CountryFilter`;
+            label.textContent = 'Country:';
+
+            const select = document.createElement('select');
+            select.id = `${tabId}CountryFilter`;
+
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All';
+            select.append(allOption);
+
+            countryOptions.forEach((country) => {
+              const option = document.createElement('option');
+              option.value = country;
+              option.textContent = country;
+              select.append(option);
+            });
+
+            select.value = countryOptions.includes(geographyRevenueCountryFilter) ? geographyRevenueCountryFilter : 'all';
+            geographyRevenueCountryFilter = select.value;
+
+            select.addEventListener('change', () => {
+              geographyRevenueCountryFilter = select.value;
+              activateTab(tabId);
+            });
+
+            filterRow.append(label, select);
+            panel.append(filterRow);
+          }
+
           const selectedYear =
             tabId === 'revenueOverTime'
               ? revenueYearFilter
@@ -981,7 +1029,8 @@
                 : tabId === 'orderValueOverTime'
                   ? orderValueYearFilter
                   : 'all';
-          const chartInstance = await renderSingleChart(panel, config, { selectedYear });
+          const selectedCountry = tabId === 'geographyRevenue' ? geographyRevenueCountryFilter : 'all';
+          const chartInstance = await renderSingleChart(panel, config, { selectedYear, selectedCountry });
           if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
             if (chartInstance) {
               chartInstance.destroy();

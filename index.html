@@ -495,6 +495,7 @@
       let revenueYearFilter = 'all';
       let ordersYearFilter = 'all';
       let orderValueYearFilter = 'all';
+      let paymentMethodRevenueYearFilter = 'all';
       let geographyRevenueCountryFilter = 'all';
 
       if (window.ChartDataLabels) {
@@ -912,7 +913,10 @@
           }
 
           const supportsYearFilter =
-            tabId === 'revenueOverTime' || tabId === 'ordersOverTime' || tabId === 'orderValueOverTime';
+            tabId === 'revenueOverTime' ||
+            tabId === 'ordersOverTime' ||
+            tabId === 'orderValueOverTime' ||
+            tabId === 'paymentMethodRevenue';
           if (supportsYearFilter) {
             const rows = await loadCsvRows(config.csvPath);
             if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
@@ -953,15 +957,19 @@
                 ? revenueYearFilter
                 : tabId === 'ordersOverTime'
                   ? ordersYearFilter
-                  : orderValueYearFilter;
+                  : tabId === 'orderValueOverTime'
+                    ? orderValueYearFilter
+                    : paymentMethodRevenueYearFilter;
             select.value = yearOptions.includes(activeYearFilter) ? activeYearFilter : 'all';
 
             if (tabId === 'revenueOverTime') {
               revenueYearFilter = select.value;
             } else if (tabId === 'ordersOverTime') {
               ordersYearFilter = select.value;
-            } else {
+            } else if (tabId === 'orderValueOverTime') {
               orderValueYearFilter = select.value;
+            } else {
+              paymentMethodRevenueYearFilter = select.value;
             }
 
             select.addEventListener('change', () => {
@@ -969,8 +977,10 @@
                 revenueYearFilter = select.value;
               } else if (tabId === 'ordersOverTime') {
                 ordersYearFilter = select.value;
-              } else {
+              } else if (tabId === 'orderValueOverTime') {
                 orderValueYearFilter = select.value;
+              } else {
+                paymentMethodRevenueYearFilter = select.value;
               }
               activateTab(tabId);
             });
@@ -1028,6 +1038,8 @@
                 ? ordersYearFilter
                 : tabId === 'orderValueOverTime'
                   ? orderValueYearFilter
+                  : tabId === 'paymentMethodRevenue'
+                    ? paymentMethodRevenueYearFilter
                   : 'all';
           const selectedCountry = tabId === 'geographyRevenue' ? geographyRevenueCountryFilter : 'all';
           const chartInstance = await renderSingleChart(panel, config, { selectedYear, selectedCountry });

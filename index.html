@@ -637,6 +637,10 @@
         return formatTickValue(value, axisTickFormat, percentScale);
       }
 
+      function formatThousandsDotInteger(value) {
+        return Math.round(Number(value)).toLocaleString('de-DE');
+      }
+
       function computeMovingAverage(values, windowSize) {
         if (!Number.isInteger(windowSize) || windowSize <= 1) {
           return [];
@@ -978,11 +982,21 @@
                 stacked: true,
                 ticks: {
                   callback(value) {
-                    return formatTickValue(value, 'currency');
+                    return formatThousandsDotInteger(value);
                   }
                 }
               },
               y: { stacked: true }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label(context) {
+                    const label = context.dataset.label ? `${context.dataset.label}: ` : '';
+                    return `${label}${formatThousandsDotInteger(context.parsed.x)}`;
+                  }
+                }
+              }
             }
           }
         });

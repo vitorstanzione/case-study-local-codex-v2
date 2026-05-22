@@ -625,9 +625,14 @@
                 if (right === null) return -1;
                 return left - right;
               })
-                          : filteredRows;
-          const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
-          const labels = [...new Set(limitedRows.map((row) => row[config.xKey]))];
+            : filteredRows;
+          const allLabels = [...new Set(sortedRows.map((row) => row[config.xKey]))];
+          const labels = Number.isFinite(config.maxLabels) ? allLabels.slice(0, config.maxLabels) : allLabels;
+          const limitedRows = config.seriesKey
+            ? sortedRows.filter((row) => labels.includes(row[config.xKey]))
+            : Number.isFinite(config.maxLabels)
+              ? sortedRows.slice(0, config.maxLabels)
+              : sortedRows;
           const canvas = createChartCard(container, config);
           const shouldReduceRevenueMonthTicks = (config.id === 'revenueOverTime' || config.id === 'ordersOverTime') && labels.length > 12;
           const revenueTickStep = !shouldReduceRevenueMonthTicks ? 1 : labels.length > 24 ? 3 : labels.length > 18 ? 3 : 2;

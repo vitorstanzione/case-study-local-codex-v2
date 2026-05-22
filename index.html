@@ -680,7 +680,8 @@
               ? yearFilteredRows.filter((row) => String(row.country || '') === selectedCountry)
               : yearFilteredRows;
           const percentScale = resolvePercentScale(config, rows);
-          const isTimeSeries = config.id === 'revenueOverTime' || config.id === 'ordersOverTime';
+          const isTimeSeries =
+            config.id === 'revenueOverTime' || config.id === 'ordersOverTime' || config.id === 'orderValueOverTime';
           const sortedRows = config.sortBy
             ? [...filteredRows].sort((a, b) => {
                 const left = Number(a[config.sortBy]);
@@ -697,7 +698,7 @@
                 if (right === null) return -1;
                 return left - right;
               })
-                          : rows;
+                          : filteredRows;
           const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
           const labels = [...new Set(limitedRows.map((row) => row[config.xKey]))];
           const canvas = createChartCard(container, config);

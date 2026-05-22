@@ -255,6 +255,60 @@
         color: var(--text);
         padding: 0.35rem 0.5rem;
       }
+
+
+      .size-control-toggle {
+        position: fixed;
+        right: 1.25rem;
+        bottom: 1.25rem;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 999px;
+        background: var(--primary);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: 0 14px 35px -18px rgba(23, 105, 255, 0.95);
+        z-index: 1200;
+      }
+
+      .size-control-toggle:hover {
+        background: var(--primary-hover);
+      }
+
+      .size-control-panel {
+        position: fixed;
+        right: 1.45rem;
+        bottom: 5.1rem;
+        background: color-mix(in srgb, var(--surface) 94%, var(--bg));
+        border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+        border-radius: 14px;
+        padding: 0.8rem 0.65rem;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.6rem;
+        z-index: 1200;
+      }
+
+      .size-control-panel[data-open='true'] {
+        display: flex;
+      }
+
+      .size-slider {
+        writing-mode: vertical-lr;
+        direction: rtl;
+        width: 1.15rem;
+        height: 190px;
+      }
+
+      .size-control-value {
+        font-size: 0.82rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -312,6 +366,11 @@
       </div>
     </dialog>
 
+    <aside id="sizeControlPanel" class="size-control-panel" aria-label="Card width selector" data-open="false">
+      <input id="sizeSlider" class="size-slider" type="range" min="50" max="100" value="90" step="1" aria-label="Dashboard width percentage" />
+      <output id="sizeValue" class="size-control-value" for="sizeSlider">90%</output>
+    </aside>
+    <button id="sizeControlToggle" class="size-control-toggle" type="button" aria-haspopup="true" aria-controls="sizeControlPanel" aria-expanded="false" title="Dashboard width settings">⚙️</button>
 
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -421,6 +480,34 @@
       let orderValueYearFilter = 'all';
       let paymentMethodRevenueYearFilter = 'all';
       let geographyRevenueCountryFilter = 'all';
+
+
+      const cardElement = document.querySelector('.card');
+      const sizeControlToggle = document.getElementById('sizeControlToggle');
+      const sizeControlPanel = document.getElementById('sizeControlPanel');
+      const sizeSlider = document.getElementById('sizeSlider');
+      const sizeValue = document.getElementById('sizeValue');
+
+      function setCardWidth(percent) {
+        const clamped = Math.min(100, Math.max(50, Number(percent) || 90));
+        cardElement.style.width = `${clamped}%`;
+        sizeSlider.value = String(clamped);
+        sizeValue.value = `${clamped}%`;
+      }
+
+      function toggleSizePanel() {
+        const isOpen = sizeControlPanel.dataset.open === 'true';
+        sizeControlPanel.dataset.open = String(!isOpen);
+        sizeControlToggle.setAttribute('aria-expanded', String(!isOpen));
+      }
+
+      sizeControlToggle.addEventListener('click', toggleSizePanel);
+      sizeSlider.addEventListener('input', (event) => {
+        setCardWidth(event.target.value);
+      });
+
+      setCardWidth(90);
+
 
       if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);

@@ -57,7 +57,8 @@
       }
 
       .card {
-        width: calc(100% - (var(--side-space-percent) * 1%));
+        /* --side-space-percent is the total horizontal % removed from the card width (e.g., 30 => 70% width). */
+        width: calc(100% - var(--side-space-percent));
         max-width: 900px;
         background: color-mix(in srgb, var(--surface) 90%, transparent);
         border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
@@ -452,7 +453,7 @@
 
       function applySideSpace(value) {
         const sideSpace = clampSideSpace(value);
-        root.style.setProperty('--side-space-percent', String(sideSpace));
+        root.style.setProperty('--side-space-percent', `${sideSpace}%`);
         sideSpaceRange.value = String(sideSpace);
         sideSpaceValue.textContent = `${sideSpace}%`;
       }

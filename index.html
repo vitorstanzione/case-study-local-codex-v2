@@ -75,8 +75,12 @@
         line-height: 1.55;
       }
 
-      .actions {
+      .top-controls {
         margin-top: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
       }
 
       button {
@@ -148,10 +152,6 @@
         color: var(--muted);
         font-size: 0.9rem;
         line-height: 1.45;
-      }
-
-      .tabs {
-        margin-top: 1.75rem;
       }
 
       .tab-list {
@@ -278,11 +278,7 @@
     <main class="card">
       <h1>Ecommerce Dashboard</h1>
       <p>Dashboard for insights and KPIs specific to ecommerce.</p>
-      <div class="actions">
-        <button id="aboutButton" class="about-btn" type="button">About</button>
-      </div>
-
-      <section class="tabs" aria-label="Dashboard views">
+      <div class="top-controls" aria-label="Dashboard controls">
         <div id="tabList" class="tab-list" role="tablist" aria-label="Dashboard tabs">
           <button id="tab-home" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="tabContent" data-tab="home">Home</button>
           <button id="tab-revenueOverTime" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="revenueOverTime">Revenue Over Time</button>
@@ -295,7 +291,8 @@
           <button id="tab-abandonedCartRecovery" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="abandonedCartRecovery">Abandoned Cart Recovery</button>
           <button id="tab-productQualityRevenue" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabContent" data-tab="productQualityRevenue">Product Quality Revenue</button>
         </div>
-      </section>
+        <button id="aboutButton" class="about-btn" type="button">About</button>
+      </div>
 
       <p id="protocolWarning" class="chart-error" hidden></p>
       <div id="tabContent" role="tabpanel" aria-labelledby="tab-home"></div>

@@ -347,7 +347,7 @@
       ];
 
       const TAB_VIEWS = {
-        revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', fillArea: true, lineTension: 0.35, reduceTickLabels: true },
+        revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', fillArea: true, lineTension: 0.35, reduceTickLabels: true, movingAverageWindow: 3, forceLegend: true, movingAverageStyle: { borderColor: '#ff6f00', borderWidth: 2.5, borderDash: [8, 5] } },
         ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true },
         orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', movingAverageWindow: 3 },
         geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency', sortBy: 'total_revenue', sortOrder: 'desc' },
@@ -607,12 +607,13 @@
 
           if (!config.seriesKey && config.chartType === 'line' && Number.isInteger(config.movingAverageWindow) && config.movingAverageWindow > 1) {
             const movingAverage = computeMovingAverage(values, config.movingAverageWindow);
+            const movingAverageStyle = config.movingAverageStyle || {};
             datasets.push({
               label: `${config.movingAverageWindow}-Month Moving Average`,
               data: movingAverage,
-              borderColor: 'rgba(23, 105, 255, 0.7)',
-              borderWidth: 1.5,
-              borderDash: [6, 4],
+              borderColor: movingAverageStyle.borderColor || '#ff6f00',
+              borderWidth: Number.isFinite(movingAverageStyle.borderWidth) ? movingAverageStyle.borderWidth : 2,
+              borderDash: Array.isArray(movingAverageStyle.borderDash) ? movingAverageStyle.borderDash : [8, 5],
               pointRadius: 0,
               pointHoverRadius: 3,
               tension: 0.25,

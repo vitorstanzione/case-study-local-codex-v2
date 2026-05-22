@@ -434,7 +434,7 @@
 
       const TAB_VIEWS = {
         revenueOverTime: { id: 'revenueOverTime', title: 'Revenue Over Time', csvPath: 'analysis/exports/CSVs/01_01_revenue_over_time.csv', chartType: 'line', xKey: 'revenue_month', yKey: 'revenue', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', fillArea: true, lineTension: 0.35, reduceTickLabels: true, movingAverageWindow: 3, forceLegend: true, movingAverageStyle: { borderColor: '#ff6f00', borderWidth: 2.5, borderDash: [8, 5] } },
-        ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'bar', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true },
+        ordersOverTime: { id: 'ordersOverTime', title: 'Orders Over Time', csvPath: 'analysis/exports/CSVs/01_02_orders_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'total_orders', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'number', reduceTickLabels: true, integerYAxis: true, fillArea: true, lineTension: 0.35, movingAverageWindow: 3, forceLegend: true, movingAverageStyle: { borderColor: '#ff6f00', borderWidth: 2.5, borderDash: [8, 5] } },
         orderValueOverTime: { id: 'orderValueOverTime', title: 'Average Order Value Over Time', csvPath: 'analysis/exports/CSVs/01_03_order_value_over_time.csv', chartType: 'line', xKey: 'order_month', yKey: 'average_order_value', horizontalBarLike: false, maxLabels: 24, heightClass: 'chart-height-md', axisTickFormat: 'currency', movingAverageWindow: 3 },
         geographyRevenue: { id: 'geographyRevenue', title: 'Revenue by Geography', csvPath: 'analysis/exports/CSVs/01_04_geography_revenue.csv', chartType: 'bar', xKey: 'city', yKey: 'total_revenue', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'currency', sortBy: 'total_revenue', sortOrder: 'desc' },
         geographyCustomers: { id: 'geographyCustomers', title: 'Customers by Country', csvPath: 'analysis/exports/CSVs/01_05_geography_customers.csv', chartType: 'bar', xKey: 'country', yKey: 'number_of_customers', horizontalBarLike: true, maxLabels: 12, heightClass: 'chart-height-lg', axisTickFormat: 'number', sortBy: 'number_of_customers', sortOrder: 'desc', integerYAxis: true, tooltipValueFormat: 'compact' },
@@ -493,6 +493,7 @@
       let activeTabId = 'home';
       let tabRenderVersion = 0;
       let revenueYearFilter = 'all';
+      let ordersYearFilter = 'all';
 
       if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -651,11 +652,11 @@
           const rows = await loadCsvRows(config.csvPath);
           const selectedYear = options.selectedYear || 'all';
           const filteredRows =
-            config.id === 'revenueOverTime' && selectedYear !== 'all'
-              ? rows.filter((row) => String(row.revenue_month || '').startsWith(`${selectedYear}-`))
-                            : rows;
+            selectedYear !== 'all'
+              ? rows.filter((row) => String(row[config.xKey] || '').startsWith(`${selectedYear}-`))
+              : rows;
           const percentScale = resolvePercentScale(config, rows);
-          const isTimeSeries = config.id === 'revenueOverTime';
+          const isTimeSeries = config.id === 'revenueOverTime' || config.id === 'ordersOverTime';
           const sortedRows = config.sortBy
             ? [...filteredRows].sort((a, b) => {
                 const left = Number(a[config.sortBy]);
@@ -665,8 +666,8 @@
               })
             : isTimeSeries
             ? [...filteredRows].sort((a, b) => {
-                const left = parseYearMonthKey(a.revenue_month);
-                const right = parseYearMonthKey(b.revenue_month);
+                const left = parseYearMonthKey(String(a[config.xKey] || ''));
+                const right = parseYearMonthKey(String(b[config.xKey] || ''));
                 if (left === null && right === null) return 0;
                 if (left === null) return 1;
                 if (right === null) return -1;
@@ -676,7 +677,7 @@
           const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
           const labels = [...new Set(limitedRows.map((row) => row[config.xKey]))];
           const canvas = createChartCard(container, config);
-          const shouldReduceRevenueMonthTicks = config.id === 'revenueOverTime' && labels.length > 12;
+          const shouldReduceRevenueMonthTicks = (config.id === 'revenueOverTime' || config.id === 'ordersOverTime') && labels.length > 12;
           const revenueTickStep = !shouldReduceRevenueMonthTicks ? 1 : labels.length > 24 ? 3 : labels.length > 18 ? 3 : 2;
           const shouldRotateLabels = Boolean(config.reduceTickLabels && labels.length > 24);
 
@@ -897,7 +898,8 @@
             return;
           }
 
-          if (tabId === 'revenueOverTime') {
+          const supportsYearFilter = tabId === 'revenueOverTime' || tabId === 'ordersOverTime';
+          if (supportsYearFilter) {
             const rows = await loadCsvRows(config.csvPath);
             if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
               return;
@@ -905,7 +907,7 @@
 
             const yearSet = new Set(
               rows
-                .map((row) => String(row.revenue_month || '').match(/^(\d{4})-/)?.[1])
+                .map((row) => String(row[config.xKey] || '').match(/^(\d{4})-/)?.[1])
                 .filter((year) => Boolean(year))
             );
             const yearOptions = [...yearSet].sort();
@@ -914,11 +916,11 @@
             filterRow.className = 'tab-filter-row';
 
             const label = document.createElement('label');
-            label.htmlFor = 'revenueYearFilter';
+            label.htmlFor = `${tabId}YearFilter`;
             label.textContent = 'Year:';
 
             const select = document.createElement('select');
-            select.id = 'revenueYearFilter';
+            select.id = `${tabId}YearFilter`;
 
             const allOption = document.createElement('option');
             allOption.value = 'all';
@@ -932,19 +934,30 @@
               select.append(option);
             });
 
-            select.value = yearOptions.includes(revenueYearFilter) ? revenueYearFilter : 'all';
-            revenueYearFilter = select.value;
+            const activeYearFilter = tabId === 'revenueOverTime' ? revenueYearFilter : ordersYearFilter;
+            select.value = yearOptions.includes(activeYearFilter) ? activeYearFilter : 'all';
+
+            if (tabId === 'revenueOverTime') {
+              revenueYearFilter = select.value;
+            } else {
+              ordersYearFilter = select.value;
+            }
 
             select.addEventListener('change', () => {
-              revenueYearFilter = select.value;
-              activateTab('revenueOverTime');
+              if (tabId === 'revenueOverTime') {
+                revenueYearFilter = select.value;
+              } else {
+                ordersYearFilter = select.value;
+              }
+              activateTab(tabId);
             });
 
             filterRow.append(label, select);
             panel.append(filterRow);
           }
 
-          const chartInstance = await renderSingleChart(panel, config, { selectedYear: revenueYearFilter });
+          const selectedYear = tabId === 'revenueOverTime' ? revenueYearFilter : tabId === 'ordersOverTime' ? ordersYearFilter : 'all';
+          const chartInstance = await renderSingleChart(panel, config, { selectedYear });
           if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
             if (chartInstance) {
               chartInstance.destroy();

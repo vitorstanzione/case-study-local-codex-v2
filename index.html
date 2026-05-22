@@ -545,7 +545,9 @@
           const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
           const labels = [...new Set(limitedRows.map((row) => row[config.xKey]))];
           const canvas = createChartCard(container, config);
-          const shouldRotateLabels = Boolean(config.reduceTickLabels && labels.length > 12);
+          const shouldReduceRevenueMonthTicks = config.id === 'revenueOverTime' && labels.length > 12;
+          const revenueTickStep = !shouldReduceRevenueMonthTicks ? 1 : labels.length > 24 ? 3 : labels.length > 18 ? 3 : 2;
+          const shouldRotateLabels = Boolean(config.reduceTickLabels && labels.length > 24);
 
           const palette = ['#1769ff', '#00acc1', '#5e35b1', '#43a047', '#ef6c00', '#e53935', '#3949ab', '#00897b'];
           let datasets;
@@ -646,6 +648,13 @@
                 },
                 tooltip: {
                   callbacks: {
+                    title(context) {
+                      if (!Array.isArray(context) || context.length === 0) {
+                        return '';
+                      }
+                      const dataIndex = context[0].dataIndex;
+                      return labels[dataIndex] ?? context[0].label ?? '';
+                    },
                     label(context) {
                       const label = context.dataset.label ? `${context.dataset.label}: ` : '';
                       if (config.chartType === 'scatter') {
@@ -672,11 +681,14 @@
                     maxTicksLimit: shouldRotateLabels ? 12 : undefined,
                     minRotation: shouldRotateLabels ? 45 : 0,
                     maxRotation: shouldRotateLabels ? 60 : 0,
-                    callback(value) {
+                    callback(value, index) {
                       if (config.chartType === 'scatter') {
                         return formatTickValue(value, config.xAxisTickFormat || 'number', percentScale || 'fraction');
                       }
-                      return value;
+                      if (shouldReduceRevenueMonthTicks && index % revenueTickStep !== 0) {
+                        return '';
+                      }
+                      return labels[index] ?? value;
                     }
                   }
                 },

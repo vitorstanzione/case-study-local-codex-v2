@@ -155,6 +155,22 @@
         font-size: 0.9rem;
         line-height: 1.45;
       }
+      .heatmap-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      .heatmap-table th,
+      .heatmap-table td {
+        border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+        padding: 0.45rem;
+        text-align: center;
+      }
+      .heatmap-table th:first-child,
+      .heatmap-table td:first-child {
+        text-align: left;
+        font-weight: 600;
+      }
 
       .tab-list {
         display: flex;
@@ -870,6 +886,133 @@
         }
       }
 
+      async function renderAbandonedCartRecoveryView(panel) {
+        const rows = await loadCsvRows('analysis/exports/CSVs/01_08_abandoned_cart_recovery.csv');
+        const bySource = new Map();
+        const valueBands = [...new Set(rows.map((row) => String(row.cart_value_band)))];
+
+        rows.forEach((row) => {
+          const source = String(row.traffic_source);
+          if (!bySource.has(source)) {
+            bySource.set(source, {
+              source,
+              abandoned: 0,
+              recoveredValue: 0,
+              unrecoveredValue: 0,
+              abandonedCarts: 0,
+              recoveredCarts: 0,
+              bandRates: new Map()
+            });
+          }
+          const item = bySource.get(source);
+          item.abandoned += Number(row.abandoned_cart_value) || 0;
+          item.recoveredValue += Number(row.recovered_value_proxy) || 0;
+          item.unrecoveredValue += Number(row.unrecovered_value_opportunity) || 0;
+          item.abandonedCarts += Number(row.abandoned_carts) || 0;
+          item.recoveredCarts += Number(row.recovered_carts) || 0;
+          item.bandRates.set(String(row.cart_value_band), Number(row.cart_recovery_rate) || 0);
+        });
+
+        const summary = [...bySource.values()].sort((left, right) => left.unrecoveredValue - right.unrecoveredValue);
+        const grid = document.createElement('section');
+        grid.className = 'chart-grid';
+        panel.append(grid);
+
+        const stackedChartConfig = {
+          id: 'abandonedCartRecoveryStacked',
+          title: 'Abandoned Cart Value Split (Recovered vs Unrecovered)',
+          chartType: 'bar',
+          heightClass: 'chart-height-lg',
+          horizontalBarLike: true,
+          axisTickFormat: 'currency',
+          forceLegend: true
+        };
+        const canvas = createChartCard(grid, stackedChartConfig);
+        const labels = summary.map((item) => item.source);
+        new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Unrecovered value opportunity',
+                data: summary.map((item) => item.unrecoveredValue),
+                backgroundColor: 'rgba(220, 38, 38, 0.8)',
+                borderColor: '#b91c1c',
+                borderWidth: 1
+              },
+              {
+                label: 'Recovered value proxy',
+                data: summary.map((item) => item.recoveredValue),
+                backgroundColor: 'rgba(22, 163, 74, 0.85)',
+                borderColor: '#15803d',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                stacked: true,
+                ticks: {
+                  callback(value) {
+                    return formatTickValue(value, 'currency');
+                  }
+                }
+              },
+              y: { stacked: true }
+            }
+          }
+        });
+
+        const heatmapCard = document.createElement('article');
+        heatmapCard.className = 'chart-card chart-height-lg';
+        const heatmapTitle = document.createElement('h3');
+        heatmapTitle.className = 'chart-title';
+        heatmapTitle.textContent = 'Cart Recovery Rate by Value Band';
+        const tableWrap = document.createElement('div');
+        tableWrap.style.overflowX = 'auto';
+        const table = document.createElement('table');
+        table.className = 'heatmap-table';
+        tableWrap.append(table);
+
+        const header = document.createElement('tr');
+        header.innerHTML = `<th>Traffic Source</th>${valueBands.map((band) => `<th>${band}</th>`).join('')}`;
+        const thead = document.createElement('thead');
+        thead.append(header);
+        table.append(thead);
+
+        const rates = rows.map((row) => Number(row.cart_recovery_rate)).filter((value) => Number.isFinite(value));
+        const minRate = Math.min(...rates);
+        const maxRate = Math.max(...rates);
+        const tbody = document.createElement('tbody');
+        summary.forEach((item) => {
+          const tr = document.createElement('tr');
+          const name = document.createElement('td');
+          const recoveredRate = item.abandonedCarts > 0 ? (item.recoveredCarts / item.abandonedCarts) * 100 : 0;
+          name.textContent = `${item.source} (${recoveredRate.toFixed(1)}%)`;
+          tr.append(name);
+          valueBands.forEach((band) => {
+            const td = document.createElement('td');
+            const rate = item.bandRates.get(band);
+            td.textContent = Number.isFinite(rate) ? `${rate.toFixed(1)}%` : '—';
+            if (Number.isFinite(rate)) {
+              const normalized = maxRate === minRate ? 0.5 : (rate - minRate) / (maxRate - minRate);
+              const hue = 6 + normalized * 120;
+              td.style.background = `hsl(${hue}, 75%, 85%)`;
+            }
+            tr.append(td);
+          });
+          tbody.append(tr);
+        });
+        table.append(tbody);
+        heatmapCard.append(heatmapTitle, tableWrap);
+        grid.append(heatmapCard);
+      }
+
       function initializeTabs() {
         const tabButtons = Array.from(document.querySelectorAll('.tab-button[role="tab"]'));
 
@@ -909,6 +1052,11 @@
           const config = TAB_VIEWS[tabId];
           if (!config) {
             renderErrorCard(panel, 'Unknown tab', `No tab view configuration found for "${tabId}".`);
+            return;
+          }
+
+          if (tabId === 'abandonedCartRecovery') {
+            await renderAbandonedCartRecoveryView(panel);
             return;
           }
 

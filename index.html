@@ -494,6 +494,7 @@
       let tabRenderVersion = 0;
       let revenueYearFilter = 'all';
       let ordersYearFilter = 'all';
+      let orderValueYearFilter = 'all';
 
       if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -898,7 +899,8 @@
             return;
           }
 
-          const supportsYearFilter = tabId === 'revenueOverTime' || tabId === 'ordersOverTime';
+          const supportsYearFilter =
+            tabId === 'revenueOverTime' || tabId === 'ordersOverTime' || tabId === 'orderValueOverTime';
           if (supportsYearFilter) {
             const rows = await loadCsvRows(config.csvPath);
             if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
@@ -934,20 +936,29 @@
               select.append(option);
             });
 
-            const activeYearFilter = tabId === 'revenueOverTime' ? revenueYearFilter : ordersYearFilter;
+            const activeYearFilter =
+              tabId === 'revenueOverTime'
+                ? revenueYearFilter
+                : tabId === 'ordersOverTime'
+                  ? ordersYearFilter
+                  : orderValueYearFilter;
             select.value = yearOptions.includes(activeYearFilter) ? activeYearFilter : 'all';
 
             if (tabId === 'revenueOverTime') {
               revenueYearFilter = select.value;
-            } else {
+            } else if (tabId === 'ordersOverTime') {
               ordersYearFilter = select.value;
+            } else {
+              orderValueYearFilter = select.value;
             }
 
             select.addEventListener('change', () => {
               if (tabId === 'revenueOverTime') {
                 revenueYearFilter = select.value;
-              } else {
+              } else if (tabId === 'ordersOverTime') {
                 ordersYearFilter = select.value;
+              } else {
+                orderValueYearFilter = select.value;
               }
               activateTab(tabId);
             });
@@ -956,7 +967,14 @@
             panel.append(filterRow);
           }
 
-          const selectedYear = tabId === 'revenueOverTime' ? revenueYearFilter : tabId === 'ordersOverTime' ? ordersYearFilter : 'all';
+          const selectedYear =
+            tabId === 'revenueOverTime'
+              ? revenueYearFilter
+              : tabId === 'ordersOverTime'
+                ? ordersYearFilter
+                : tabId === 'orderValueOverTime'
+                  ? orderValueYearFilter
+                  : 'all';
           const chartInstance = await renderSingleChart(panel, config, { selectedYear });
           if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
             if (chartInstance) {

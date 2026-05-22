@@ -13,7 +13,6 @@
         --primary: #1769ff;
         --primary-hover: #0f57de;
         --overlay: rgba(2, 17, 40, 0.55);
-        --side-space-percent: 30;
       }
 
       :root[data-theme='dark'] {
@@ -24,7 +23,6 @@
         --primary: #5c94ff;
         --primary-hover: #7aa8ff;
         --overlay: rgba(0, 0, 0, 0.7);
-        --side-space-percent: 30;
       }
 
       :root[data-theme='light'] {
@@ -35,7 +33,6 @@
         --primary: #1769ff;
         --primary-hover: #0f57de;
         --overlay: rgba(2, 17, 40, 0.55);
-        --side-space-percent: 30;
       }
 
       * {
@@ -57,8 +54,7 @@
       }
 
       .card {
-        /* --side-space-percent is the total horizontal % removed from the card width (e.g., 30 => 70% width). */
-        width: calc(100% - var(--side-space-percent));
+        width: 100%;
         max-width: 900px;
         background: color-mix(in srgb, var(--surface) 90%, transparent);
         border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
@@ -247,50 +243,6 @@
       }
 
 
-      .layout-settings-toggle {
-        position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        width: 48px;
-        height: 48px;
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-        background: var(--surface);
-        color: var(--text);
-        box-shadow: 0 10px 24px -14px rgba(2, 17, 40, 0.8);
-        z-index: 30;
-      }
-
-      .layout-settings-panel {
-        position: fixed;
-        right: 1rem;
-        bottom: 4.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        background: color-mix(in srgb, var(--surface) 95%, var(--bg));
-        border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-        border-radius: 999px;
-        padding: 0.55rem 0.8rem;
-        box-shadow: 0 16px 30px -18px rgba(2, 17, 40, 0.9);
-        z-index: 30;
-      }
-
-      .layout-settings-panel[hidden] {
-        display: none;
-      }
-
-      .layout-settings-panel input[type='range'] {
-        width: min(44vw, 280px);
-      }
-
-      .layout-settings-value {
-        min-width: 4.5ch;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        color: var(--muted);
-      }
-
       .tab-filter-row {
         margin-top: 0.4rem;
         display: flex;
@@ -360,13 +312,6 @@
     </dialog>
 
 
-
-    <button id="layoutSettingsToggle" class="layout-settings-toggle" type="button" aria-expanded="false" aria-controls="layoutSettingsPanel" aria-label="Layout settings">⚙️</button>
-    <div id="layoutSettingsPanel" class="layout-settings-panel" hidden>
-      <label for="sideSpaceRange">Side space</label>
-      <input id="sideSpaceRange" type="range" min="0" max="50" step="1" value="30" />
-      <span id="sideSpaceValue" class="layout-settings-value">30%</span>
-    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -461,44 +406,6 @@
       };
 
       const STORAGE_KEY = 'themePreference';
-
-      const LAYOUT_SPACE_KEY = 'layoutSideSpacePercent';
-      const layoutSettingsToggle = document.getElementById('layoutSettingsToggle');
-      const layoutSettingsPanel = document.getElementById('layoutSettingsPanel');
-      const sideSpaceRange = document.getElementById('sideSpaceRange');
-      const sideSpaceValue = document.getElementById('sideSpaceValue');
-
-      function clampSideSpace(value) {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return 30;
-        const rounded = Math.round(numeric);
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-        const minimumContentWidth = 320;
-        const maxPercentByViewport =
-          viewportWidth > minimumContentWidth
-            ? Math.floor(((viewportWidth - minimumContentWidth) / viewportWidth) * 50)
-            : 0;
-
-        return Math.min(50, maxPercentByViewport, Math.max(0, rounded));
-      }
-
-      function applySideSpace(value) {
-        const sideSpace = clampSideSpace(value);
-        root.style.setProperty('--side-space-percent', `${sideSpace}%`);
-        sideSpaceRange.value = String(sideSpace);
-        sideSpaceValue.textContent = `${sideSpace}%`;
-      }
-
-      function setSideSpace(value) {
-        const sideSpace = clampSideSpace(value);
-        localStorage.setItem(LAYOUT_SPACE_KEY, String(sideSpace));
-        applySideSpace(sideSpace);
-      }
-
-      function initSideSpace() {
-        const stored = localStorage.getItem(LAYOUT_SPACE_KEY);
-        applySideSpace(stored ?? 30);
-      }
 
       const root = document.documentElement;
       const modal = document.getElementById('aboutModal');
@@ -1272,16 +1179,6 @@
         });
       });
 
-      layoutSettingsToggle.addEventListener('click', () => {
-        const panelWillOpen = layoutSettingsPanel.hasAttribute('hidden');
-        layoutSettingsPanel.toggleAttribute('hidden', !panelWillOpen);
-        layoutSettingsToggle.setAttribute('aria-expanded', String(panelWillOpen));
-      });
-
-      sideSpaceRange.addEventListener('input', (event) => {
-        setSideSpace(event.target.value);
-      });
-
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
         if (getStoredTheme() === 'auto') {
           applyTheme('auto');
@@ -1289,11 +1186,6 @@
       });
 
       showProtocolWarning();
-      initSideSpace();
-      window.addEventListener('resize', () => {
-        const stored = localStorage.getItem(LAYOUT_SPACE_KEY) ?? 30;
-        applySideSpace(stored);
-      });
       applyTheme(getStoredTheme());
       initializeTabs();
     </script>

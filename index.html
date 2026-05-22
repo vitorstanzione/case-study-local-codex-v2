@@ -57,7 +57,8 @@
       }
 
       .card {
-        width: min(900px, calc(100% - (var(--side-space-percent) * 1vw)));
+        width: calc(100% - (var(--side-space-percent) * 1%));
+        max-width: 900px;
         background: color-mix(in srgb, var(--surface) 90%, transparent);
         border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
         border-radius: 18px;

@@ -53,11 +53,11 @@
         justify-items: center;
         align-content: start;
         padding-block: 1.5rem;
-        padding-inline: max(1rem, calc(var(--side-space-percent) * 0.5vw));
+        padding-inline: 1rem;
       }
 
       .card {
-        width: min(900px, 100%);
+        width: min(900px, calc(100% - (var(--side-space-percent) * 1vw)));
         background: color-mix(in srgb, var(--surface) 90%, transparent);
         border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
         border-radius: 18px;

@@ -818,6 +818,9 @@
                       if (config.chartType === 'scatter') {
                         return formatTickValue(value, config.xAxisTickFormat || 'number', percentScale || 'fraction');
                       }
+                      if (config.horizontalBarLike) {
+                        return formatTickValue(value, config.axisTickFormat, percentScale || 'fraction');
+                      }
                       if (shouldReduceRevenueMonthTicks && index % revenueTickStep !== 0) {
                         return '';
                       }
@@ -834,7 +837,10 @@
                   max: config.axisTickFormat === 'percent' ? (percentScale === 'whole' ? 100 : 1) : undefined,
                   ticks: {
                     precision: config.integerYAxis ? 0 : undefined,
-                    callback(value) {
+                    callback(value, index) {
+                      if (config.horizontalBarLike) {
+                        return labels[index] ?? value;
+                      }
                       if (config.integerYAxis && !Number.isInteger(Number(value))) {
                         return '';
                       }

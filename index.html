@@ -274,6 +274,21 @@
         font-variant-numeric: tabular-nums;
         color: var(--muted);
       }
+
+      .tab-filter-row {
+        margin-top: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .tab-filter-row select {
+        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 0.35rem 0.5rem;
+      }
     </style>
   </head>
   <body>
@@ -477,6 +492,7 @@
       let activeChart = null;
       let activeTabId = 'home';
       let tabRenderVersion = 0;
+      let revenueYearFilter = 'all';
 
       if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -630,20 +646,25 @@
         return year * 100 + month;
       }
 
-      async function renderSingleChart(container, config) {
+      async function renderSingleChart(container, config, options = {}) {
         try {
           const rows = await loadCsvRows(config.csvPath);
+          const selectedYear = options.selectedYear || 'all';
+          const filteredRows =
+            config.id === 'revenueOverTime' && selectedYear !== 'all'
+              ? rows.filter((row) => String(row.revenue_month || '').startsWith(`${selectedYear}-`))
+                            : rows;
           const percentScale = resolvePercentScale(config, rows);
           const isTimeSeries = config.id === 'revenueOverTime';
           const sortedRows = config.sortBy
-            ? [...rows].sort((a, b) => {
+            ? [...filteredRows].sort((a, b) => {
                 const left = Number(a[config.sortBy]);
                 const right = Number(b[config.sortBy]);
                 const direction = config.sortOrder === 'asc' ? 1 : -1;
                 return (left - right) * direction;
               })
             : isTimeSeries
-            ? [...rows].sort((a, b) => {
+            ? [...filteredRows].sort((a, b) => {
                 const left = parseYearMonthKey(a.revenue_month);
                 const right = parseYearMonthKey(b.revenue_month);
                 if (left === null && right === null) return 0;
@@ -651,7 +672,7 @@
                 if (right === null) return -1;
                 return left - right;
               })
-            : rows;
+                          : rows;
           const limitedRows = Number.isFinite(config.maxLabels) ? sortedRows.slice(0, config.maxLabels) : sortedRows;
           const labels = [...new Set(limitedRows.map((row) => row[config.xKey]))];
           const canvas = createChartCard(container, config);
@@ -876,7 +897,54 @@
             return;
           }
 
-          const chartInstance = await renderSingleChart(panel, config);
+          if (tabId === 'revenueOverTime') {
+            const rows = await loadCsvRows(config.csvPath);
+            if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
+              return;
+            }
+
+            const yearSet = new Set(
+              rows
+                .map((row) => String(row.revenue_month || '').match(/^(\d{4})-/)?.[1])
+                .filter((year) => Boolean(year))
+            );
+            const yearOptions = [...yearSet].sort();
+
+            const filterRow = document.createElement('div');
+            filterRow.className = 'tab-filter-row';
+
+            const label = document.createElement('label');
+            label.htmlFor = 'revenueYearFilter';
+            label.textContent = 'Year:';
+
+            const select = document.createElement('select');
+            select.id = 'revenueYearFilter';
+
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All';
+            select.append(allOption);
+
+            yearOptions.forEach((year) => {
+              const option = document.createElement('option');
+              option.value = year;
+              option.textContent = year;
+              select.append(option);
+            });
+
+            select.value = yearOptions.includes(revenueYearFilter) ? revenueYearFilter : 'all';
+            revenueYearFilter = select.value;
+
+            select.addEventListener('change', () => {
+              revenueYearFilter = select.value;
+              activateTab('revenueOverTime');
+            });
+
+            filterRow.append(label, select);
+            panel.append(filterRow);
+          }
+
+          const chartInstance = await renderSingleChart(panel, config, { selectedYear: revenueYearFilter });
           if (renderVersion !== tabRenderVersion || activeTabId !== tabId) {
             if (chartInstance) {
               chartInstance.destroy();
